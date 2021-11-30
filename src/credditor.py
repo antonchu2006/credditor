@@ -4,11 +4,11 @@ import sys, re
 import mysql.connector
 from os.path import exists
 from configparser import ConfigParser
-
+import requests
 
 # Database configuration 
 db = mysql.connector.connect(
-  host="192.168.0.20",
+  host="192.168.0.30",
   user="root",
   password="",
   database="china"
@@ -18,6 +18,10 @@ db_cursor = db.cursor(buffered=True)
 
 
 config = ConfigParser()
+
+def id_to_ping(id):
+    return f'<@{id}>'
+
 
 def config_setup(file):
     config["APP OPTIONS"] = {
@@ -53,6 +57,7 @@ if(len(sys.argv) >= 2):
 else:
     print('Please include a bot token!')
     quit()
+headers = {"Content-Type": "application/json", "Authorization": f"Bot {token}"}
  
 negative_triggers = []
 def set_neg_trig(file):
@@ -168,6 +173,50 @@ async def on_message(message):
         else:
             await message.reply(":exclamation: Uso: ``+social @nombre puntos``")
 
+    if "ccp!tier" in msg: 
+        
+        try:
+            db_cursor.execute("SELECT * FROM social_credit;")
+
+            uid = []
+            scredits = []
+
+            
+            rcount = int(db_cursor.rowcount)
+            for r in range(rcount):
+                row = db_cursor.fetchone()
+                uid.append(row[0])
+                scredits.append(row[1])
+
+            scredits, uid = zip(*sorted(zip(scredits, uid)))
+
+            scredits = scredits[::-1]
+            uid = uid[::-1]
+            
+            
+            embed = discord.Embed(title="Tabla de social credit del BOT!") 
+            for discordid, credit in zip(uid, scredits):
+                
+                user = requests.get(f"https://discordapp.com/api/users/{discordid}", headers=headers).json()
+                try:
+                    isBot = user["bot"]
+                    if isBot == 'True':
+                        isBot = True
+                except:
+                    isBot = False
+                    
+                if isBot != True:
+                    user = user["username"] + "#" + user["discriminator"]
+                    
+                    embed.add_field(name=user, value=str(credit))
+                    
+            await message.channel.send(embed=embed)
+
+        except Exception:
+            await message.reply(":exclamation: Error ejecutando el comando, contacte al administrador del bot para arreglarlo.")
+            pass
+                    
+        
     if "-social" in msg and message.author.id == 543513627794210825:
         
         if len(message.content.split(" ")) == 3:
@@ -196,7 +245,7 @@ async def on_message(message):
             await message.reply(":exclamation: Uso: ``+social @nombre puntos``")
 
     if "ccp!help" in msg: 
-        await message.channel.send("\n**Comandos del usuario**:\n``ccp!social``: Ver mis social points.\n\n**Comandos del admin**:\n``+social``: Añade puntos a un usuario. \n``-social``: Quita puntos a un usuario.")
+        await message.channel.send("\n**Comandos del usuario**:\n``ccp!social``: Ver mis social points.\n``ccp!tier``: Ver la tabla de social credit.\n\n**Comandos del admin**:\n``+social``: Añade puntos a un usuario. \n``-social``: Quita puntos a un usuario.")
     
     if "ccp!social" in msg: 
 
@@ -219,6 +268,7 @@ async def on_message(message):
 
     
     await client.process_commands(message)
+
 
 
 @client.event
