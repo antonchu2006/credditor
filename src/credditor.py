@@ -5,7 +5,6 @@ import mysql.connector
 from os.path import exists
 from configparser import ConfigParser
 import requests
-from prettytable import PrettyTable
 
 # Database configuration 
 db = mysql.connector.connect(
