@@ -5,10 +5,12 @@ import mysql.connector
 from os.path import exists
 from configparser import ConfigParser
 import requests
+from prettytable import PrettyTable
 
 # Database configuration 
 db = mysql.connector.connect(
-  host="192.168.0.30",
+  host="YOUR IP",
+  port=YOUR_PORT,
   user="root",
   password="",
   database="china"
@@ -174,7 +176,6 @@ async def on_message(message):
             await message.reply(":exclamation: Uso: ``+social @nombre puntos``")
 
     if "ccp!tier" in msg: 
-        
         try:
             db_cursor.execute("SELECT * FROM social_credit;")
 
@@ -195,7 +196,7 @@ async def on_message(message):
             
             
             embed = discord.Embed(title="Tabla de social credit del BOT!") 
-            for discordid, credit in zip(uid, scredits):
+            for discordid, credit, count in zip(uid, scredits, range(12)):
                 
                 user = requests.get(f"https://discordapp.com/api/users/{discordid}", headers=headers).json()
                 try:
@@ -206,17 +207,17 @@ async def on_message(message):
                     isBot = False
                     
                 if isBot != True:
-                    user = user["username"] + "#" + user["discriminator"]
+                    number = count +1 
+                    user = f"#{number} - " + str(user["username"])
                     
                     embed.add_field(name=user, value=str(credit))
-                    
+                if count == 10:
+                    break
             await message.channel.send(embed=embed)
 
         except Exception:
             await message.reply(":exclamation: Error ejecutando el comando, contacte al administrador del bot para arreglarlo.")
             pass
-                    
-        
     if "-social" in msg and message.author.id == 543513627794210825:
         
         if len(message.content.split(" ")) == 3:
